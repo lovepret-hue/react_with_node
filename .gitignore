@@ -1,0 +1,10 @@
+# Ignore node_modules
+**/node_modules/
+
+# Ignore build output
+**/build/
+**/dist/
+
+# Optional: environment or log files
+*.env
+*.log

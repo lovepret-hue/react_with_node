@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
+const path = require('path');
 
 dotenv.config();
 const app = express();
@@ -22,7 +23,7 @@ app.get('/', (req, res) => {
 });
  // ✅ Parse incoming JSON
 
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // ✅ serve images
 
 // MongoDB connection
 mongoose.connect('mongodb://localhost:27017/mydb'); // ✅ Cleaned

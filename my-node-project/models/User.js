@@ -18,6 +18,19 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true
+  },
+  fullName: {
+    type: String,
+    trim: true
+  },
+  gender: {
+    type: String,
+    enum: ['Male', 'Female', 'Other'], // Optional: restrict to certain values
+    default: 'Other'
+  },
+  image: {
+    type: String, // Usually stores the file path or URL
+    default: ''   // Default can be empty or a default image URL
   }
 }, {
   timestamps: true // Automatically adds createdAt and updatedAt

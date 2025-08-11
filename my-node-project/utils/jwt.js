@@ -2,7 +2,7 @@
 const jwt = require('jsonwebtoken');
 
 exports.generateToken = (payload) => {
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
-  });
+   const secret = '6LcoyIwrAAAAAGCOHx48y4G2T9l4ZXQlqMA-DhnW';
+  if (!secret) throw new Error('JWT secret key is missing');
+  return jwt.sign(payload, secret, { expiresIn: '1h' });
 };

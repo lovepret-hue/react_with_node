@@ -8,6 +8,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
           
         <Route path="/login" element={<Login />} />
         </Route>

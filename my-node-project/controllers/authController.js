@@ -1,6 +1,7 @@
 // controllers/authController.js
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const { generateToken } = require('../utils/jwt');
 const User = require('../models/User');
@@ -36,12 +37,10 @@ exports.registerUser = async (req, res) => {
     // ✅ Save user
     await newUser.save();
 
-    // ✅ Generate JWT
-    const token = generateToken({ id: newUser._id, username: newUser.username });
+    
 
     res.status(201).json({
-      message: 'User registered successfully',
-      token
+      message: 'User registered successfully'
     });
 
   } catch (error) {
@@ -50,43 +49,6 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-// =============================
-// Login User
-// =============================
-// exports.loginUser = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     // ✅ Validate input
-//     if (!email || !password) {
-//       return res.status(400).json({ message: 'Email and password are required' });
-//     }
-
-//     // ✅ Find user by email
-//     const user = await User.findOne({ email });
-//     if (!user) {
-//       return res.status(400).json({ message: 'Invalid email or password' });
-//     }
-
-//     // ✅ Check password
-//     const isMatch = await bcrypt.compare(password, user.password);
-//     if (!isMatch) {
-//       return res.status(400).json({ message: 'Invalid email or password' });
-//     }
-
-//     // ✅ Generate JWT
-//     const token = generateToken({ id: user._id, username: user.username });
-
-//     res.status(200).json({
-//       message: 'Login successful',
-//       token
-//     });
-
-//   } catch (error) {
-//     console.error('Login Error:', error.message);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// };
 exports.loginUser = async (req, res) => {
   try {
     const { email, password, captcha } = req.body;
@@ -96,12 +58,22 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: 'CAPTCHA is required' });
     }
 
-    const secretKey = '6LcoyIwrAAAAAGCOHx48y4G2T9l4ZXQlqMA-DhnW'; // Replace with your actual secret
-    const verifyURL = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${captcha}`;
+    const secretKey = '6LcoyIwrAAAAAGCOHx48y4G2T9l4ZXQlqMA-DhnW';
 
-    const captchaResponse = await axios.post(verifyURL);
+    const captchaResponse = await axios.post(
+      'https://www.google.com/recaptcha/api/siteverify',
+      new URLSearchParams({
+        secret: secretKey,
+        response: captcha
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
     const { success } = captchaResponse.data;
-
     if (!success) {
       return res.status(400).json({ message: 'CAPTCHA verification failed' });
     }
@@ -111,7 +83,7 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // ✅ Find user by email
+    // ✅ Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
@@ -123,8 +95,13 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // ✅ Generate JWT
-    const token = generateToken({ id: user._id, username: user.username });
+    // ✅ Generate JWT (same secret as in middleware)
+    const JWT_SECRET = 'mySuperSecretKey123'; // 👈 use same key in middleware
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
     res.status(200).json({
       message: 'Login successful',
@@ -132,11 +109,53 @@ exports.loginUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login Error:', error.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Login Error:', error);
+    res.status(500).json({ message: 'Server error at node' });
   }
 };
 
 exports.getDashboard = (req, res) => {
   res.json({ message: `Welcome ${req.user.username} to the dashboard!` });
+};
+exports.ProfileUpdate = (req, res) => {
+  res.json({ message: `Welcome ${req.user.username} to the dashboard!` });
+};
+exports.getProfile = async (req, res) => {
+
+  try {
+
+    const user = await User.findById(req.user.id).select('-password'); // exclude password
+    if (!user) {
+      return res.status(404).json({ message: 'User not found'+req.user.id});
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Get Profile Error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.UpdateProfile = async (req, res) => {
+  try {
+    const { fullName, gender } = req.body;
+
+    const updateData = {
+      fullName,
+      gender,
+    };
+
+    if (req.file) {
+      updateData.image = `/uploads/${req.file.filename}`; // ✅ includes extension
+    }
+
+    const user = await User.findByIdAndUpdate(req.user.id, updateData, { new: true }).select('-password');
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    res.json({ message: 'Profile updated successfully', user });
+  } catch (err) {
+    console.error('Profile update error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
